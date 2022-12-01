@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <deque>
 
 
 class Aggressor {
@@ -15,7 +16,8 @@ public:
 	void generateInputData(std::string fileRoute);
 	std::vector<Aggressor> extractData(std::string fileRoute);
 	void proccessOutputData(std::vector<Aggressor>& fileData, std::string fileRoute);
-	void sendOuputData(Aggressor& traderOne, Aggressor& traderTwo, int dealQ, std::string fileRoute);
+	void sendSellerOutput(Aggressor& traderOne, Aggressor& traderTwo, std::ofstream& fout);
+	void sendBuyerOutput(Aggressor& traderOne, Aggressor& traderTwo, std::ofstream& fout);
 	std::string trader;
 	char side{};
 	int quantity{};

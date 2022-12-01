@@ -75,62 +75,87 @@ std::vector<Aggressor> Aggressor::extractData(std::string fileRoute) {
 	return data;
 }
 void Aggressor::proccessOutputData(std::vector<Aggressor>& fileData, std::string fileRoute) {
+	//wanted to use it instead of +- sign, but it's redundant
+	/*std::map<char, char> sign;
+	sign['B'] = '+';
+	sign['S'] = '-';*/
+	std::deque<Aggressor> oneLineChecker;
+	//crutch to solve the problem with blank line
+	int crutch = 0;
+	std::ofstream fout(fileRoute, std::ios::app);
 	for (auto& traderOne : fileData) {
 		for (auto& traderTwo : fileData) {
-			//  50/50 chance to make a deal
-			if (rand() % 100 < 50 && traderOne.side == 'B' && traderTwo.side == 'S' && traderOne.trader != traderTwo.trader && 
-				traderOne.quantity != 0 && traderTwo.quantity != 0) {
-				int dealQuantity = rand() % traderOne.quantity;
-				if (dealQuantity == 0) { dealQuantity++; };
-				//do not buy/sell more, than you can
-				if (dealQuantity < traderTwo.quantity) {
-					{
-						sendOuputData(traderOne, traderTwo, dealQuantity, fileRoute);
+			oneLineChecker.push_back(traderOne);
+				//  50/50 chance to make a deal
+				if (rand() % 100 < 50 && traderOne.side == 'B' && traderTwo.side == 'S' && traderOne.trader != traderTwo.trader &&
+					traderOne.quantity != 0 && traderTwo.quantity != 0) {
+					sendBuyerOutput(traderOne, traderTwo, fout);
+				}
+				if (rand() % 100 < 50 && traderOne.side == 'S' && traderTwo.side == 'B' && traderOne.trader != traderTwo.trader &&
+					traderOne.quantity != 0 && traderTwo.quantity != 0) {
+					sendSellerOutput(traderOne, traderTwo, fout);
+				}
+				//checks, when it's time to make a new line
+				if (oneLineChecker[0].trader != traderOne.trader && !oneLineChecker.empty()) {
+					oneLineChecker.clear();
+					if (crutch > 0) {
+						fout << "\n";
 					}
-				}
-				else {
-					dealQuantity = traderTwo.quantity;
-					sendOuputData(traderOne, traderTwo, dealQuantity, fileRoute);
-				}
-			}
-			if (rand() % 100 < 50 && traderOne.side == 'S' && traderTwo.side == 'B' && traderOne.trader != traderTwo.trader && 
-				traderOne.quantity != 0 && traderTwo.quantity != 0) {
-				int dealQuantity = rand() % traderOne.quantity;
-				if (dealQuantity == 0) { dealQuantity++; };
-				//do not buy/sell more, than you can
-				if (dealQuantity < traderTwo.quantity) {
-					{
-						sendOuputData(traderOne, traderTwo, dealQuantity, fileRoute);
-					}
-
-				}
-				else {
-					dealQuantity = traderTwo.quantity;
-					sendOuputData(traderOne, traderTwo, dealQuantity, fileRoute);
+					crutch++;
 				}
 			}
 		}
+	fout.close();
 	}
-}
-void Aggressor::sendOuputData(Aggressor& traderOne, Aggressor& traderTwo, int dealQuantity, std::string fileRoute) {
-	std::map<char, char> sign;
-	sign['B'] = '+';
-	sign['S'] = '-';
+//the difference between 2 functions below is in their sign order and price checker:
+//seller wants higher price, buyer lower
+void Aggressor::sendBuyerOutput(Aggressor& traderOne, Aggressor& traderTwo, std::ofstream& fout)
+{
+	//randomizing size of the purchase
+	int dealQuantity = rand() % traderOne.quantity;
+	//do not buy nothing
+	if (dealQuantity == 0) { dealQuantity++; };
+	//do not buy/sell more, than you can
+	if (dealQuantity > traderTwo.quantity) {
+		dealQuantity = traderTwo.quantity;
+	}
 
-	std::ofstream fout(fileRoute, std::ios::app);
-
-	//check better price
+	//check better price to buy
 	if (traderOne.price <= traderTwo.price) {
-		fout << traderOne.trader << sign[traderOne.side] << dealQuantity << "@" << traderOne.price << " " <<
-			traderTwo.trader << sign[traderTwo.side] << dealQuantity << "@" << traderOne.price << "\n";
+		fout << traderOne.trader << "+" << dealQuantity << "@" << traderOne.price << " " <<
+			traderTwo.trader << "-" << dealQuantity << "@" << traderOne.price << " ";
 		traderOne.quantity -= dealQuantity;
 		traderTwo.quantity -= dealQuantity;
 	}
 	else {
-		fout << traderOne.trader << sign[traderOne.side] << dealQuantity << "@" << traderTwo.price << " " <<
-			traderTwo.trader << sign[traderTwo.side] << dealQuantity << "@" << traderTwo.price << "\n";
+		fout<< traderOne.trader << "+" << dealQuantity << "@" << traderTwo.price << " " <<
+			traderTwo.trader << "-" << dealQuantity << "@" << traderTwo.price << " ";
 		traderOne.quantity -= dealQuantity;
 		traderTwo.quantity -= dealQuantity;
 	}
-
 }
+void Aggressor::sendSellerOutput(Aggressor& traderOne, Aggressor& traderTwo, std::ofstream& fout)
+{	
+	//randomising size of the sale
+	int dealQuantity = rand() % traderOne.quantity;
+	//do not buy nothing
+	if (dealQuantity == 0) { dealQuantity++; };
+	//do not buy/sell more, than you can
+	if (dealQuantity > traderTwo.quantity) {
+		dealQuantity = traderTwo.quantity;
+	}
+	//check better price to sell
+	if (traderOne.price >= traderTwo.price) {
+		fout << traderOne.trader << "-" << dealQuantity << "@" << traderOne.price << " " <<
+			traderTwo.trader << "+" << dealQuantity << "@" << traderOne.price << " ";
+		traderOne.quantity -= dealQuantity;
+		traderTwo.quantity -= dealQuantity;
+	}
+	else {
+		fout << traderOne.trader << "-" << dealQuantity << "@" << traderTwo.price << " " <<
+			traderTwo.trader << "+" << dealQuantity << "@" << traderTwo.price << " ";
+		traderOne.quantity -= dealQuantity;
+		traderTwo.quantity -= dealQuantity;
+	}
+}
+
